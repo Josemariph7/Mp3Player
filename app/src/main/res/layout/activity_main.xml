@@ -10,8 +10,9 @@
         android:id="@+id/imageView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:src="@drawable/foto.jpg" <!-- Reemplaza tu_imagen con el nombre de tu imagen -->
-    android:layout_centerInParent="true"/>
+        android:src="@drawable/foto"
+    android:layout_centerInParent="true"
+        tools:ignore="MissingConstraints" />
 
     <Button
         android:id="@+id/btnPlay"

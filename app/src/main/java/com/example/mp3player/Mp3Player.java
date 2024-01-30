@@ -54,15 +54,12 @@ public class Mp3Player extends AppCompatActivity {
 
             @Override
             public void onStartTrackingTouch(SeekBar seekBar) {
-                // Puede ser útil si quieres detener la actualización mientras el usuario arrastra la barra.
             }
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
-                // Puede ser útil si quieres reanudar la actualización después de que el usuario suelta la barra.
             }
         });
-
         initSeekBar();
     }
 
