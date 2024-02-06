@@ -6,59 +6,92 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".Mp3Player">
+
     <ImageView
         android:id="@+id/imageView"
+        android:layout_width="424dp"
+        android:layout_height="431dp"
+        android:src="@drawable/foto1"
+        app:layout_constraintBottom_toTopOf="@id/chkRepeat"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <CheckBox
+        android:id="@+id/chkRepeat"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:src="@drawable/foto"
-    android:layout_centerInParent="true"
-        tools:ignore="MissingConstraints" />
+        android:layout_marginTop="32dp"
+        android:text="Repetir Canción"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/imageView" />
+
+    <SeekBar
+        android:id="@+id/seekBar"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="28dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/chkRepeat" />
+
+    <Button
+        android:id="@+id/btnPrevious"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="88dp"
+        android:layout_marginTop="96dp"
+        android:text="Anterior"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/seekBar" />
 
     <Button
         android:id="@+id/btnPlay"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="160dp"
-        android:layout_marginTop="640dp"
-        android:layout_marginBottom="43dp"
+        android:layout_marginTop="28dp"
         android:text="Play"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintEnd_toStartOf="@id/btnPause"
+        app:layout_constraintStart_toEndOf="@id/btnPrevious"
+        app:layout_constraintTop_toBottomOf="@id/seekBar" />
 
     <Button
         android:id="@+id/btnPause"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="48dp"
-        android:layout_marginTop="641dp"
-        android:layout_marginBottom="42dp"
+        android:layout_marginTop="28dp"
         android:text="Pause"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintEnd_toStartOf="@id/btnStop"
+        app:layout_constraintStart_toEndOf="@id/btnPlay"
+        app:layout_constraintTop_toBottomOf="@id/seekBar" />
 
     <Button
         android:id="@+id/btnStop"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="641dp"
-        android:layout_marginEnd="44dp"
-        android:layout_marginBottom="42dp"
+        android:layout_marginTop="28dp"
         android:text="Stop"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintEnd_toStartOf="@id/btnNext"
+        app:layout_constraintStart_toEndOf="@id/btnPause"
+        app:layout_constraintTop_toBottomOf="@id/seekBar" />
 
-    <SeekBar
-        android:id="@+id/seekBar"
-        android:layout_width="394dp"
+    <Button
+        android:id="@+id/btnNext"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="595dp"
-        android:layout_marginEnd="9dp"
+        android:layout_marginTop="96dp"
+        android:layout_marginEnd="84dp"
+        android:text="Siguiente"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toBottomOf="@id/seekBar" />
+
+    <Space
+        android:layout_width="16dp"
+        android:layout_height="36dp"
+        tools:layout_editor_absoluteX="88dp"
+        tools:layout_editor_absoluteY="430dp" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
+
