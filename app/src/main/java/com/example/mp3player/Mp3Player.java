@@ -1,11 +1,15 @@
 package com.example.mp3player;
 
+import android.graphics.BitmapFactory;
+import android.media.MediaMetadataRetriever;
 import android.media.MediaPlayer;
-import android.os.Handler;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.widget.CheckBox;
 import android.widget.ImageView;
 import android.widget.SeekBar;
+import android.widget.VideoView;
 import androidx.appcompat.app.AppCompatActivity;
 
 public class Mp3Player extends AppCompatActivity {
@@ -16,7 +20,9 @@ public class Mp3Player extends AppCompatActivity {
     private Runnable runnable;
     private CheckBox chkRepeat;
     private ImageView imageView;
-    private int[] canciones = {R.raw.song1, R.raw.song2};
+    private VideoView videoView;
+    private MediaMetadataRetriever metaRetriever;
+    private int[] canciones = {R.raw.video1,R.raw.song1, R.raw.song2};
     private int[] imagenes = {R.drawable.foto1, R.drawable.foto2};
     private int cancionActual = 0;
 
@@ -25,30 +31,24 @@ public class Mp3Player extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        mediaPlayer = MediaPlayer.create(this, canciones[cancionActual]);
+        mediaPlayer = new MediaPlayer();
         seekBar = findViewById(R.id.seekBar);
-        seekBar.setMax(mediaPlayer.getDuration());
         chkRepeat = findViewById(R.id.chkRepeat);
         imageView = findViewById(R.id.imageView);
+        videoView = findViewById(R.id.videoView);
 
         findViewById(R.id.btnPlay).setOnClickListener(v -> playCancion());
         findViewById(R.id.btnPause).setOnClickListener(v -> pauseCancion());
         findViewById(R.id.btnStop).setOnClickListener(v -> stopCancion());
-        findViewById(R.id.btnNext).setOnClickListener(v -> {
-            siguienteCancion();
-            actualizarImagen();
-        });
-        findViewById(R.id.btnPrevious).setOnClickListener(v -> {
-            anteriorCancion();
-            actualizarImagen();
-        });
+        findViewById(R.id.btnNext).setOnClickListener(v -> siguienteCancion());
+        findViewById(R.id.btnPrevious).setOnClickListener(v -> anteriorCancion());
 
         mediaPlayer.setOnCompletionListener(mp -> {
             if (chkRepeat.isChecked()) {
-                playCancion();
+                mediaPlayer.seekTo(0);
+                mediaPlayer.start();
             } else {
                 siguienteCancion();
-                actualizarImagen();
             }
         });
 
@@ -61,59 +61,74 @@ public class Mp3Player extends AppCompatActivity {
             }
 
             @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {
-            }
+            public void onStartTrackingTouch(SeekBar seekBar) {}
 
             @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
-            }
+            public void onStopTrackingTouch(SeekBar seekBar) {}
         });
         initSeekBar();
-        actualizarImagen();
+        cargarCancionActual();
     }
 
-    private void actualizarImagen() {
-        imageView.setImageResource(imagenes[cancionActual]);
+    private void cargarCancionActual() {
+        Uri uri = Uri.parse("android.resource://" + getPackageName() + "/" + canciones[cancionActual]);
+        String nombreRecurso = getResources().getResourceEntryName(canciones[cancionActual]);
+        if (nombreRecurso.endsWith(".mp4")) {
+            imageView.setVisibility(ImageView.GONE);
+            videoView.setVisibility(VideoView.VISIBLE);
+            videoView.setVideoURI(uri);
+            videoView.setOnPreparedListener(mp -> videoView.start());
+        } else {
+            mediaPlayer.reset();
+            mediaPlayer = MediaPlayer.create(getApplicationContext(), canciones[cancionActual]);
+            mediaPlayer.start();
+            imageView.setVisibility(ImageView.VISIBLE);
+            videoView.setVisibility(VideoView.GONE);
+            metaRetriever = new MediaMetadataRetriever();
+            metaRetriever.setDataSource(this, uri);
+            byte[] art = metaRetriever.getEmbeddedPicture();
+            if (art != null) {
+                imageView.setImageBitmap(BitmapFactory.decodeByteArray(art, 0, art.length));
+            } else {
+                imageView.setImageResource(imagenes[cancionActual]);
+            }
+        }
+        seekBar.setMax(mediaPlayer != null ? mediaPlayer.getDuration() : videoView.getDuration());
     }
 
     private void playCancion() {
-        if (!mediaPlayer.isPlaying()) {
+        if (mediaPlayer != null && !mediaPlayer.isPlaying()) {
             mediaPlayer.start();
+        } else if (videoView != null && !videoView.isPlaying()) {
+            videoView.start();
         }
     }
 
     private void pauseCancion() {
-        if (mediaPlayer.isPlaying()) {
+        if (mediaPlayer != null && mediaPlayer.isPlaying()) {
             mediaPlayer.pause();
+        } else if (videoView != null && videoView.isPlaying()) {
+            videoView.pause();
         }
     }
 
     private void stopCancion() {
-        if (mediaPlayer.isPlaying()) {
+        if (mediaPlayer != null && mediaPlayer.isPlaying()) {
             mediaPlayer.stop();
+        } else if (videoView != null && videoView.isPlaying()) {
+            videoView.stopPlayback();
         }
-        mediaPlayer.reset();
-        mediaPlayer = MediaPlayer.create(getApplicationContext(), canciones[cancionActual]);
-        seekBar.setMax(mediaPlayer.getDuration());
-        seekBar.setProgress(0);
+        cargarCancionActual();
     }
 
     private void siguienteCancion() {
         cancionActual = (cancionActual + 1) % canciones.length;
-        cambiarCancion();
+        cargarCancionActual();
     }
 
     private void anteriorCancion() {
         cancionActual = (cancionActual - 1 + canciones.length) % canciones.length;
-        cambiarCancion();
-    }
-
-    private void cambiarCancion() {
-        mediaPlayer.release();
-        mediaPlayer = MediaPlayer.create(getApplicationContext(), canciones[cancionActual]);
-        playCancion();
-        seekBar.setMax(mediaPlayer.getDuration());
-        seekBar.setProgress(0);
+        cargarCancionActual();
     }
 
     private void initSeekBar() {
@@ -122,6 +137,8 @@ public class Mp3Player extends AppCompatActivity {
             public void run() {
                 if (mediaPlayer != null && mediaPlayer.isPlaying()) {
                     seekBar.setProgress(mediaPlayer.getCurrentPosition());
+                } else if (videoView != null && videoView.isPlaying()) {
+                    seekBar.setProgress(videoView.getCurrentPosition());
                 }
                 handler.postDelayed(this, 500);
             }
@@ -132,8 +149,11 @@ public class Mp3Player extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        if (mediaPlayer.isPlaying()) {
+        if (mediaPlayer != null && mediaPlayer.isPlaying()) {
             mediaPlayer.pause();
+        }
+        if (videoView != null && videoView.isPlaying()) {
+            videoView.pause();
         }
     }
 
@@ -143,6 +163,9 @@ public class Mp3Player extends AppCompatActivity {
         if (mediaPlayer != null) {
             mediaPlayer.release();
             mediaPlayer = null;
+        }
+        if (videoView != null) {
+            videoView.stopPlayback();
         }
         handler.removeCallbacks(runnable);
     }
