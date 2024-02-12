@@ -1,28 +1,35 @@
 package com.example.mp3player;
 
+import android.annotation.SuppressLint;
 import android.graphics.BitmapFactory;
 import android.media.MediaMetadataRetriever;
 import android.media.MediaPlayer;
+import android.media.MediaRecorder;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.widget.CheckBox;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.SeekBar;
+import android.widget.TextView;
 import android.widget.VideoView;
 import androidx.appcompat.app.AppCompatActivity;
+import java.io.IOException;
+import java.util.Locale;
 
 public class Mp3Player extends AppCompatActivity {
 
     private MediaPlayer mediaPlayer;
     private SeekBar seekBar;
     private Handler handler = new Handler();
-    private Runnable runnable;
-    private CheckBox chkRepeat;
+    private boolean isRepeatEnabled = false;
     private ImageView imageView;
     private VideoView videoView;
-    private MediaMetadataRetriever metaRetriever;
-    private int[] canciones = {R.raw.video1,R.raw.song1, R.raw.song2};
+    private TextView currentTimeTextView, totalTimeTextView;
+    private MediaRecorder mediaRecorder = null;
+    private String audioFile = null;
+    private int[] canciones = {R.raw.video1, R.raw.song1, R.raw.song2};
     private int[] imagenes = {R.drawable.foto1, R.drawable.foto2};
     private int cancionActual = 0;
 
@@ -32,21 +39,42 @@ public class Mp3Player extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         mediaPlayer = new MediaPlayer();
-        seekBar = findViewById(R.id.seekBar);
-        chkRepeat = findViewById(R.id.chkRepeat);
-        imageView = findViewById(R.id.imageView);
-        videoView = findViewById(R.id.videoView);
+        seekBar = (SeekBar) findViewById(R.id.seekBar);
+        imageView = (ImageView) findViewById(R.id.imageView);
+        videoView = (VideoView) findViewById(R.id.videoView);
+        currentTimeTextView = (TextView) findViewById(R.id.currentTime);
+        totalTimeTextView = (TextView) findViewById(R.id.totalTime);
 
-        findViewById(R.id.btnPlay).setOnClickListener(v -> playCancion());
-        findViewById(R.id.btnPause).setOnClickListener(v -> pauseCancion());
-        findViewById(R.id.btnStop).setOnClickListener(v -> stopCancion());
-        findViewById(R.id.btnNext).setOnClickListener(v -> siguienteCancion());
-        findViewById(R.id.btnPrevious).setOnClickListener(v -> anteriorCancion());
+        ImageButton btnPlay = findViewById(R.id.btnPlay); // Asegúrate de que el ID corresponde al playButton
+        ImageButton btnPause = findViewById(R.id.btnPause); // Asegúrate de que el ID corresponde al pauseButton
+        ImageButton btnStop = findViewById(R.id.btnStop); // Asegúrate de que el ID corresponde al stopButton
+        ImageButton btnNext = findViewById(R.id.btnNext); // Asegúrate de que el ID corresponde al nextButton
+        ImageButton btnPrevious = findViewById(R.id.btnPrevious); // Asegúrate de que el ID corresponde al previousButton
+        ImageButton btnRepeat = findViewById(R.id.btnRepeat); // Asegúrate de que el ID corresponde al repeatButton
+        ImageButton btnRecord = findViewById(R.id.botonGrabar); // Asegúrate de que el ID corresponde al recordButton
+
+        // Asignar funcionalidades a los botones
+        btnPlay.setOnClickListener(v -> playCancion());
+        btnPause.setOnClickListener(v -> pauseCancion());
+        btnStop.setOnClickListener(v -> stopCancion());
+        btnNext.setOnClickListener(v -> siguienteCancion());
+        btnPrevious.setOnClickListener(v -> anteriorCancion());
+
+        btnRecord.setOnClickListener(v -> {
+            if (mediaRecorder == null) {
+                startRecording();
+            } else {
+                stopRecording();
+            }
+        });
+
+        btnRepeat.setOnClickListener(v -> {
+            isRepeatEnabled = !isRepeatEnabled;
+        });
 
         mediaPlayer.setOnCompletionListener(mp -> {
-            if (chkRepeat.isChecked()) {
-                mediaPlayer.seekTo(0);
-                mediaPlayer.start();
+            if (isRepeatEnabled==true) {
+                playCancion();
             } else {
                 siguienteCancion();
             }
@@ -55,7 +83,7 @@ public class Mp3Player extends AppCompatActivity {
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                if (fromUser && mediaPlayer != null) {
+                if (fromUser) {
                     mediaPlayer.seekTo(progress);
                 }
             }
@@ -66,59 +94,79 @@ public class Mp3Player extends AppCompatActivity {
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {}
         });
-        initSeekBar();
+
         cargarCancionActual();
+        updateSeekBar();
     }
 
     private void cargarCancionActual() {
+        if (mediaPlayer.isPlaying() || videoView.isPlaying()) {
+            mediaPlayer.stop();
+            videoView.stopPlayback();
+        }
+        mediaPlayer.reset();
         Uri uri = Uri.parse("android.resource://" + getPackageName() + "/" + canciones[cancionActual]);
-        String nombreRecurso = getResources().getResourceEntryName(canciones[cancionActual]);
-        if (nombreRecurso.endsWith(".mp4")) {
+
+        if (canciones[cancionActual] == R.raw.video1) { // Asumiendo que video1 es tu archivo de video
+            videoView.setVideoURI(uri);
+            videoView.setOnPreparedListener(mp -> {
+                videoView.start();
+            });
             imageView.setVisibility(ImageView.GONE);
             videoView.setVisibility(VideoView.VISIBLE);
-            videoView.setVideoURI(uri);
-            videoView.setOnPreparedListener(mp -> videoView.start());
         } else {
-            mediaPlayer.reset();
-            mediaPlayer = MediaPlayer.create(getApplicationContext(), canciones[cancionActual]);
-            mediaPlayer.start();
-            imageView.setVisibility(ImageView.VISIBLE);
-            videoView.setVisibility(VideoView.GONE);
-            metaRetriever = new MediaMetadataRetriever();
-            metaRetriever.setDataSource(this, uri);
-            byte[] art = metaRetriever.getEmbeddedPicture();
-            if (art != null) {
-                imageView.setImageBitmap(BitmapFactory.decodeByteArray(art, 0, art.length));
-            } else {
-                imageView.setImageResource(imagenes[cancionActual]);
+            try {
+                mediaPlayer.setDataSource(this, uri);
+                mediaPlayer.prepareAsync();
+                mediaPlayer.setOnPreparedListener(mp -> {
+                    mp.start();
+                    seekBar.setMax(mediaPlayer.getDuration());
+                });
+                imageView.setVisibility(ImageView.VISIBLE);
+                videoView.setVisibility(VideoView.GONE);
+
+                MediaMetadataRetriever retriever = new MediaMetadataRetriever();
+                retriever.setDataSource(this, uri);
+                byte[] art = retriever.getEmbeddedPicture();
+                if (art != null) {
+                    imageView.setImageBitmap(BitmapFactory.decodeByteArray(art, 0, art.length));
+                } else {
+                    // Aquí debes asegurarte de que el índice cancionActual siempre sea válido para el array imagenes.
+                    imageView.setImageResource(imagenes[cancionActual % imagenes.length]);
+                }
+                retriever.release();
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         }
-        seekBar.setMax(mediaPlayer != null ? mediaPlayer.getDuration() : videoView.getDuration());
     }
 
     private void playCancion() {
-        if (mediaPlayer != null && !mediaPlayer.isPlaying()) {
+        if (!mediaPlayer.isPlaying() && cancionActual != R.raw.video1) {
             mediaPlayer.start();
-        } else if (videoView != null && !videoView.isPlaying()) {
+        } else if (!videoView.isPlaying() && cancionActual == R.raw.video1) {
             videoView.start();
         }
+        updateSeekBar();
     }
 
     private void pauseCancion() {
-        if (mediaPlayer != null && mediaPlayer.isPlaying()) {
+        if (mediaPlayer.isPlaying()) {
             mediaPlayer.pause();
-        } else if (videoView != null && videoView.isPlaying()) {
+        } else if (videoView.isPlaying()) {
             videoView.pause();
         }
     }
 
     private void stopCancion() {
-        if (mediaPlayer != null && mediaPlayer.isPlaying()) {
+        if (mediaPlayer.isPlaying()) {
             mediaPlayer.stop();
-        } else if (videoView != null && videoView.isPlaying()) {
+        } else if (videoView.isPlaying()) {
             videoView.stopPlayback();
         }
-        cargarCancionActual();
+        seekBar.setProgress(videoView.getCurrentPosition());
+        mediaPlayer.reset();
+        //cargarCancionActual();
     }
 
     private void siguienteCancion() {
@@ -131,28 +179,61 @@ public class Mp3Player extends AppCompatActivity {
         cargarCancionActual();
     }
 
-    private void initSeekBar() {
-        runnable = new Runnable() {
+    private void startRecording() {
+        mediaRecorder = new MediaRecorder();
+        mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+        mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
+        audioFile = getExternalCacheDir().getAbsolutePath() + "/audioRecord.3gp";
+        mediaRecorder.setOutputFile(audioFile);
+        mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
+
+        try {
+            mediaRecorder.prepare();
+            mediaRecorder.start();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void stopRecording() {
+        mediaRecorder.stop();
+        mediaRecorder.release();
+        mediaRecorder = null;
+    }
+
+    private void updateSeekBar() {
+        runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 if (mediaPlayer != null && mediaPlayer.isPlaying()) {
                     seekBar.setProgress(mediaPlayer.getCurrentPosition());
+                    currentTimeTextView.setText(formatTime(mediaPlayer.getCurrentPosition()));
+                    totalTimeTextView.setText(formatTime(mediaPlayer.getDuration()));
                 } else if (videoView != null && videoView.isPlaying()) {
                     seekBar.setProgress(videoView.getCurrentPosition());
+                    currentTimeTextView.setText(formatTime(videoView.getCurrentPosition()));
+                    totalTimeTextView.setText(formatTime(videoView.getDuration()));
                 }
-                handler.postDelayed(this, 500);
+                handler.postDelayed(this, 1000);
             }
-        };
-        handler.postDelayed(runnable, 0);
+        });
+    }
+
+    private String formatTime(int millis) {
+        int seconds = millis / 1000;
+        int minutes = seconds / 60;
+        seconds = seconds % 60;
+
+        return String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds);
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        if (mediaPlayer != null && mediaPlayer.isPlaying()) {
+        if (mediaPlayer.isPlaying()) {
             mediaPlayer.pause();
         }
-        if (videoView != null && videoView.isPlaying()) {
+        if (videoView.isPlaying()) {
             videoView.pause();
         }
     }
@@ -162,12 +243,13 @@ public class Mp3Player extends AppCompatActivity {
         super.onDestroy();
         if (mediaPlayer != null) {
             mediaPlayer.release();
-            mediaPlayer = null;
         }
         if (videoView != null) {
             videoView.stopPlayback();
         }
-        handler.removeCallbacks(runnable);
+        if (mediaRecorder != null) {
+            mediaRecorder.release();
+        }
+        handler.removeCallbacksAndMessages(null);
     }
 }
-
