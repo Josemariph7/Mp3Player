@@ -3,6 +3,7 @@ package com.example.mp3player;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.ContentResolver;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.Drawable;
@@ -25,12 +26,8 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
+
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
@@ -254,46 +251,12 @@ public class Mp3Player extends AppCompatActivity {
     }
 
     private void startRecording() {
-        mediaRecorder = new MediaRecorder();
-        mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
-        mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
-        audioFile = getExternalCacheDir().getAbsolutePath() + "/audioRecord.3gp";
-        mediaRecorder.setOutputFile(audioFile);
-        mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
-
-        try {
-            mediaRecorder.prepare();
-            mediaRecorder.start();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        Intent intent = new Intent(this, GrabacionActivity.class);
+        startActivity(intent);
     }
 
     private void stopRecording() {
-        mediaRecorder.stop();
-        mediaRecorder.release();
-        mediaRecorder = null;
-
-        File src = new File(audioFile);
-        String fileName = "audio_" + System.currentTimeMillis() + ".3gp";
-        File dst = new File(getFilesDir(), fileName);
-        try {
-            copy(src, dst);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void copy(File src, File dst) throws IOException {
-        try (InputStream in = new FileInputStream(src)) {
-            try (OutputStream out = new FileOutputStream(dst)) {
-                byte[] buf = new byte[1024];
-                int len;
-                while ((len = in.read(buf)) > 0) {
-                    out.write(buf, 0, len);
-                }
-            }
-        }
+        // No se realiza ninguna acción aquí, ya que la grabación se detiene en la actividad GrabacionActivity
     }
 
     private void updateSeekBar() {
