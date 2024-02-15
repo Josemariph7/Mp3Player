@@ -37,12 +37,17 @@ public class GrabacionActivity extends AppCompatActivity {
 
     public void grabar(View view) {
         if (grabacion == null) {
-            String nombreAleatorio = UUID.randomUUID().toString() + ".mp3"; // Genera un nombre aleatorio
-            archivoSalida = getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS) + "/" + nombreAleatorio;
+            String nombreAleatorio = "audio_" + UUID.randomUUID().toString() + ".mp3"; // Genera un nombre aleatorio
+            File musicDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC);
+            File recordingsDir = new File(musicDir, "Recordings");
+            if (!recordingsDir.exists()) {
+                recordingsDir.mkdirs(); // Crea el directorio si no existe
+            }
+            archivoSalida = new File(recordingsDir, nombreAleatorio).getAbsolutePath();
 
             grabacion = new MediaRecorder();
             grabacion.setAudioSource(MediaRecorder.AudioSource.MIC);
-            grabacion.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
+            grabacion.setOutputFormat(MediaRecorder.OutputFormat.AAC_ADTS);
             grabacion.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
             grabacion.setOutputFile(archivoSalida);
 
@@ -50,11 +55,12 @@ public class GrabacionActivity extends AppCompatActivity {
                 grabacion.prepare();
                 grabacion.start();
             } catch (IOException e) {
+                Toast.makeText(this, "ERROR", Toast.LENGTH_SHORT).show();
             }
 
             btn_recorder.setBackgroundResource(R.drawable.rec);
             Toast.makeText(getApplicationContext(), "Grabando...", Toast.LENGTH_SHORT).show();
-        } else if (grabacion != null) {
+        } else {
             grabacion.stop();
             grabacion.release();
             grabacion = null;
